@@ -205,7 +205,7 @@ class RecvHandler(BaseRequestHandler):
                 
                 else:
                     # Line parsed correctly
-                    log.debug(u"Correctly persed 1 line: " + unicode(dictv))
+                    log.debug(u"Correctly parsed 1 line: " + unicode(dictv))
                     
                     #Prepare dictv for query
                     map(lambda v: MySQLdb.string_literal(v), dictv)
