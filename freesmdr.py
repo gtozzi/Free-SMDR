@@ -67,6 +67,7 @@ import re, math
 from datetime import datetime, time
 import MySQLdb
 import logging
+import signal
 
 # Info
 NAME = 'Free SMDR'
@@ -254,6 +255,14 @@ class RecvHandler(BaseRequestHandler):
         # Connection terminated
         log.info(unicode(peerinfo[0]) + ' (' + unicode(peerinfo[1]) + ') disconnected')
 
+def exitcleanup(signum):
+    print "Signal %s received, exiting .." % signum
+    server.server_close()
+    sys.exit(0)   
+
+def sighandler(signum = None, frame = None):
+    exitcleanup(signum)
+
 # Parse command line
 usage = "%prog [options] <config_file>"
 parser = OptionParser(usage=usage, version=NAME + ' ' + VERSION)
@@ -261,6 +270,8 @@ parser.add_option("-f", "--foreground", dest="foreground",
             help="Don't daemonize", action="store_true")
 
 (options, args) = parser.parse_args()
+signal.signal(signal.SIGTERM, sighandler)
+signal.signal(signal.SIGINT, sighandler)
 
 # Fork & go to background
 if not options.foreground:
@@ -299,8 +310,6 @@ if pid == 0:
         server = TCPServer((HOST, PORT), RecvHandler)
         try:
             server.serve_forever()
-        except KeyboardInterrupt:
-            log.info("^C detected, exiting...")
         except Exception as e:
             log.critical("Got exception, crashing...")
             log.critical(unicode(e))
