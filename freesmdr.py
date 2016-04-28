@@ -68,6 +68,7 @@ from datetime import datetime, time
 import MySQLdb
 import logging
 import signal
+import ConfigParser
 
 # Info
 NAME = 'Free SMDR'
@@ -78,13 +79,12 @@ HOST = ''                     #Listen on this IP
 PORT = 5514                   #Listen on this port
 LOGFILE = '/var/log/freesmdr/freesmdr.log' #Where to log the received data
 LOGINFO = '/var/log/freesmdr/freesmdr.info' #Debug output
-MYSQL_DB = {
-    'host': 'localhost',
-    'user': 'freesmdr',
-    'passwd': '',
-    'db': 'freesmdr',
-    'table': 'freesmdr',
-}
+
+# Read from ini file the db settings
+config = ConfigParser.ConfigParser()
+config.read('freesmdr.conf')
+connparams = config.items('connection')
+MYSQL_DB = dict(connparams)
 
 # Classes
 class ParserError(Exception):

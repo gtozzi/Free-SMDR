@@ -1,0 +1,6 @@
+[connection]
+host = localhost
+user = freesmdr
+passwd =
+db = freesmdr
+table = freesmdr
