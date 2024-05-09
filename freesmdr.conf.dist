@@ -1,4 +1,4 @@
-[connection]
+[database]
 host = localhost
 user = freesmdr
 passwd =
