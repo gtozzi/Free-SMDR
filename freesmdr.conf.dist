@@ -4,3 +4,9 @@ user = freesmdr
 passwd =
 db = freesmdr
 table = freesmdr
+
+[program]
+host = ''                     #Listen on this IP ('' means default ip)
+port = 9000                   #Listen on this port
+logfile = '/var/log/freesmdr/freesmdr.log' #Where to log the received data
+loginfo = '/var/log/freesmdr/freesmdr.info' #Debug output

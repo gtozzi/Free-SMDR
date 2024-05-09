@@ -74,19 +74,19 @@ import configparser
 NAME = 'Free SMDR'
 VERSION = '0.9'
 
-# Settings
-HOST = ''                     #Listen on this IP
-PORT = 5514                   #Listen on this port
-LOGFILE = '/var/log/freesmdr/freesmdr.log' #Where to log the received data
-LOGINFO = '/var/log/freesmdr/freesmdr.info' #Debug output
-HOST = ''                     #Listen on this IP ('' means default ip)
-PORT = 9000                   #Listen on this port
-
-# Read from ini file the db settings
+# Read from ini file the settings
 config = configparser.ConfigParser()
 config.read('freesmdr.conf')
+# DB settings
 connparams = config.items('database')
 MYSQL_DB = dict(connparams)
+# Progam settings
+progsettings = dict(config.items('program'))
+HOST = progsettings['host']
+PORT = progsettings['port']
+LOGFILE = progsettings['logfile']
+LOGINFO = progsettings['loginfo']
+
 
 # Classes
 class ParserError(Exception):
