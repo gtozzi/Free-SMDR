@@ -74,20 +74,6 @@ import configparser
 NAME = 'Free SMDR'
 VERSION = '0.9'
 
-# Read from ini file the settings
-config = configparser.ConfigParser()
-config.read('freesmdr.conf')
-# DB settings
-connparams = config.items('database')
-MYSQL_DB = dict(connparams)
-# Progam settings
-progsettings = dict(config.items('program'))
-HOST = progsettings['host']
-PORT = int(progsettings['port'])
-LOGFILE = progsettings['logfile']
-LOGINFO = progsettings['loginfo']
-
-
 # Classes
 class ParserError(Exception):
     def __init__(self, value):
@@ -272,8 +258,30 @@ usage = "%prog [options] <config_file>"
 parser = OptionParser(usage=usage, version=NAME + ' ' + VERSION)
 parser.add_option("-f", "--foreground", dest="foreground",
             help="Don't daemonize", action="store_true")
+parser.add_option("-c", "--config", dest="configpath",
+            help="Config file location (defaults to current dir)", action="store", default="freesmdr.conf")
 
 (options, args) = parser.parse_args()
+
+
+# Read from ini file the settings
+configfile=options.configpath
+config = configparser.ConfigParser()
+if os.path.isfile(configfile):
+    config.read(configfile)
+else:
+    print("Config file {configfile} doesn't exist".format(configfile=configfile))
+    sys.exit(1)
+# DB settings
+connparams = config.items('database')
+MYSQL_DB = dict(connparams)
+# Progam settings
+progsettings = dict(config.items('program'))
+HOST = progsettings['host']
+PORT = int(progsettings['port'])
+LOGFILE = progsettings['logfile']
+LOGINFO = progsettings['loginfo']
+
 
 # Gracefully process signals
 signal.signal(signal.SIGTERM, sighandler)
