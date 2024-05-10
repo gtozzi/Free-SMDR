@@ -83,7 +83,7 @@ MYSQL_DB = dict(connparams)
 # Progam settings
 progsettings = dict(config.items('program'))
 HOST = progsettings['host']
-PORT = progsettings['port']
+PORT = int(progsettings['port'])
 LOGFILE = progsettings['logfile']
 LOGINFO = progsettings['loginfo']
 
