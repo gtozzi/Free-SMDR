@@ -1,0 +1,9 @@
+# Exclude ide files
+.idea
+
+# Exclude config files
+*.conf
+
+# Exlude log files
+*.log
+*.info

@@ -1,0 +1,15 @@
+[database]
+host = localhost
+user = freesmdr
+passwd =
+db = freesmdr
+table = freesmdr
+
+[program]
+; Listen on this IP (empty for default ip)
+host =
+; Listen port
+port = 9000
+; Log files for logging and debug
+logfile = '/var/log/freesmdr/freesmdr.log'
+loginfo = '/var/log/freesmdr/freesmdr.info'

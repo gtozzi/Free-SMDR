@@ -58,8 +58,8 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 '''
 
-from SocketServer import TCPServer
-from SocketServer import BaseRequestHandler
+from socketserver import TCPServer
+from socketserver import BaseRequestHandler
 import sys, os
 from optparse import OptionParser
 import traceback
@@ -68,23 +68,11 @@ from datetime import datetime, time
 import MySQLdb
 import logging
 import signal
+import configparser
 
 # Info
 NAME = 'Free SMDR'
 VERSION = '0.9'
-
-# Settings
-HOST = ''                     #Listen on this IP
-PORT = 5514                   #Listen on this port
-LOGFILE = '/var/log/freesmdr/freesmdr.log' #Where to log the received data
-LOGINFO = '/var/log/freesmdr/freesmdr.info' #Debug output
-MYSQL_DB = {
-    'host': 'localhost',
-    'user': 'freesmdr',
-    'passwd': '',
-    'db': 'freesmdr',
-    'table': 'freesmdr',
-}
 
 # Classes
 class ParserError(Exception):
@@ -139,7 +127,7 @@ class RecvHandler(BaseRequestHandler):
         );
 
         peerinfo = self.request.getpeername()
-        log.info(u'Got connection from ' + unicode(peerinfo[0]) + ' (' + unicode(peerinfo[1]) + ')')
+        log.info('Got connection from ' + peerinfo[0] + ' (' + str(peerinfo[1]) + ')')
         
         #Init database
         conn = MySQLdb.connect(
@@ -153,12 +141,12 @@ class RecvHandler(BaseRequestHandler):
         #Receive data loop
         dbuffer = ""
         while server_running:
-            data = self.request.recv(1024)
+            data = self.request.recv(1024).decode()
             if not data:
                 break
 
             # Append data to LOGFILE
-            lgf = open(LOGFILE, 'ab')
+            lgf = open(LOGFILE, 'a')
             lgf.write(data)
             lgf.close()
 
@@ -200,13 +188,13 @@ class RecvHandler(BaseRequestHandler):
                             raise ParserError(v[0] + ': Unknown field type ' + v[1])
                         i += 1
                 
-                except Exception, e:
+                except Exception as e:
                     # Unable to parse line
-                    log.error(u"Parse error on line (" + str(v[0]) + str(vals[i]) + "): got exception " + unicode(e) + " (" + str(line) + ")")
+                    log.error("Parse error on line (" + str(v[0]) + str(vals[i]) + "): got exception " + e + " (" + str(line) + ")")
                 
                 else:
                     # Line parsed correctly
-                    log.debug(u"Correctly parsed 1 line: " + unicode(dictv))
+                    log.debug("Correctly parsed 1 line: " + str(dictv))
                     
                     #Prepare dictv for query
                     map(lambda v: MySQLdb.string_literal(v), dictv)
@@ -244,20 +232,20 @@ class RecvHandler(BaseRequestHandler):
                             `cost_per_unit` = '%(cost_per_unit)s',
                             `markup` = '%(markup)s';
                     """ % dictv
-                    log.debug(u"Query: " + unicode(q))
+                    log.debug("Query: " + q)
                     cursor.execute(q)
                     cursor.close()
             
             else:
-                log.error(u"Parse error on line (len " + str(len(vals)) + " vs " + str(len(fieldlist)) + "): " + unicode(line))
+                log.error("Parse error on line (len " + str(len(vals)) + " vs " + str(len(fieldlist)) + "): " + line)
 
 
         # Connection terminated
-        log.info(unicode(peerinfo[0]) + ' (' + unicode(peerinfo[1]) + ') disconnected')
+        log.info(peerinfo[0] + ' (' + str(peerinfo[1]) + ') disconnected')
 
 
 def exitcleanup(signum):
-    print "Signal %s received, exiting..." % signum
+    print("Signal %s received, exiting..." % signum)
     server.server_close()
     sys.exit(0)   
 
@@ -270,8 +258,30 @@ usage = "%prog [options] <config_file>"
 parser = OptionParser(usage=usage, version=NAME + ' ' + VERSION)
 parser.add_option("-f", "--foreground", dest="foreground",
             help="Don't daemonize", action="store_true")
+parser.add_option("-c", "--config", dest="configpath",
+            help="Config file location (defaults to current dir)", action="store", default="freesmdr.conf")
 
 (options, args) = parser.parse_args()
+
+
+# Read from ini file the settings
+configfile=options.configpath
+config = configparser.ConfigParser()
+if os.path.isfile(configfile):
+    config.read(configfile)
+else:
+    print("Config file {configfile} doesn't exist".format(configfile=configfile))
+    sys.exit(1)
+# DB settings
+connparams = config.items('database')
+MYSQL_DB = dict(connparams)
+# Progam settings
+progsettings = dict(config.items('program'))
+HOST = progsettings['host']
+PORT = int(progsettings['port'])
+LOGFILE = progsettings['logfile']
+LOGINFO = progsettings['loginfo']
+
 
 # Gracefully process signals
 signal.signal(signal.SIGTERM, sighandler)
@@ -316,7 +326,7 @@ if pid == 0:
             server.serve_forever()
         except Exception as e:
             log.critical("Got exception, crashing...")
-            log.critical(unicode(e))
+            log.critical(e)
             log.critical(traceback.format_exc())
             raise e
         server.server_close()
