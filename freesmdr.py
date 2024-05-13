@@ -72,7 +72,7 @@ import configparser
 
 # Info
 NAME = 'Free SMDR'
-VERSION = '0.9'
+VERSION = '0.93'
 
 # Classes
 class ParserError(Exception):
