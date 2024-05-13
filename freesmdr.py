@@ -321,6 +321,7 @@ if pid == 0:
 
         # Start server
         server_running = True
+        TCPServer.allow_reuse_address = True
         server = TCPServer((HOST, PORT), RecvHandler)
         try:
             server.serve_forever()
