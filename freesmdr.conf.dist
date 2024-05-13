@@ -11,5 +11,5 @@ host =
 ; Listen port
 port = 9000
 ; Log files for logging and debug
-logfile = '/var/log/freesmdr/freesmdr.log'
-loginfo = '/var/log/freesmdr/freesmdr.info'
+logfile = /var/log/freesmdr/freesmdr.log
+loginfo = /var/log/freesmdr/freesmdr.info
