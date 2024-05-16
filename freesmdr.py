@@ -38,10 +38,15 @@ Here is the SQL to create the table:
   `units_change` varchar(255) DEFAULT NULL COMMENT 'Units at last User Change',
   `cost_per_unit` varchar(255) DEFAULT NULL,
   `markup` varchar(255) DEFAULT NULL,
+  `host` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`idfreesmdr`),
   KEY `direction_idx` (`direction`),
   KEY `caller_idx` (`caller`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT='Freesmdr log table';
+
+If the table doesn't have yet the host columnt (indicating the src host per the information)
+  ALTER TABLE `freesmdr`
+  ADD COLUMN `host` VARCHAR(255) NULL AFTER `markup`;
 
 This program is free software: you can redistribute it and/or modify
 it under the terms of the GNU General Public License as published by
@@ -200,6 +205,7 @@ class ThreadedTCPRequestHandler(BaseRequestHandler):
                     #Prepare dictv for query
                     map(lambda v: MySQLdb.string_literal(v), dictv)
                     dictv['table'] = MYSQL_DB['table']
+                    dictv['host'] = peerinfo[0]
                     
                     # Put the data into the DB
                     cursor = conn.cursor()
@@ -231,7 +237,8 @@ class ThreadedTCPRequestHandler(BaseRequestHandler):
                             `call_units` = '%(call_units)s',
                             `units_change` = '%(units_change)s',
                             `cost_per_unit` = '%(cost_per_unit)s',
-                            `markup` = '%(markup)s';
+                            `markup` = '%(markup)s',
+                            `host` = '%(host)s';
                     """ % dictv
                     log.debug("Query: " + q)
                     cursor.execute(q)
