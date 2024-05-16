@@ -60,6 +60,7 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 from socketserver import TCPServer
 from socketserver import BaseRequestHandler
+from socketserver import ForkingMixIn
 import sys, os
 from optparse import OptionParser
 import traceback
@@ -69,6 +70,7 @@ import MySQLdb
 import logging
 import signal
 import configparser
+import threading
 
 # Info
 NAME = 'Free SMDR'
@@ -81,8 +83,7 @@ class ParserError(Exception):
     def __str__(self):
         return repr(self.value)
 
-class RecvHandler(BaseRequestHandler):
-
+class ThreadedTCPRequestHandler(BaseRequestHandler):
     def handle(self):
         """ Handles established connection
     
@@ -243,11 +244,12 @@ class RecvHandler(BaseRequestHandler):
         # Connection terminated
         log.info(peerinfo[0] + ' (' + str(peerinfo[1]) + ') disconnected')
 
-
+class ThreadedTCPServer(ForkingMixIn, TCPServer):
+    pass
 def exitcleanup(signum):
     print("Signal %s received, exiting..." % signum)
     server.server_close()
-    sys.exit(0)   
+    sys.exit(0)
 
 def sighandler(signum = None, frame = None):
     exitcleanup(signum)
@@ -287,52 +289,40 @@ LOGINFO = progsettings['loginfo']
 signal.signal(signal.SIGTERM, sighandler)
 signal.signal(signal.SIGINT, sighandler)
 
-# Fork & go to background
+# Set up file logging
+logging.basicConfig(
+    level = logging.DEBUG,
+    format = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
+    datefmt = '%Y-%m-%d %H:%M:%S',
+    filename = LOGINFO,
+    filemode = 'a'
+)
+
+if options.foreground:
+    # Set up console logging
+    console = logging.StreamHandler()
+    console.setLevel(logging.INFO)
+    formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
+    console.setFormatter(formatter)
+    logging.getLogger('').addHandler(console)
+
+# Create logger
+log = logging.getLogger()
+
+# Start server
+server_running = True
+TCPServer.allow_reuse_address = True
+server = ThreadedTCPServer((HOST, PORT), ThreadedTCPRequestHandler)
+ip, port = server.server_address
+
+# Start a thread with the server -- that thread will then start one
+# more thread for each request
+server_thread = threading.Thread(target=server.serve_forever)
+# Exit the server thread when the main thread terminates
 if not options.foreground:
-    pid = os.fork()
-else:
-    pid = 0
-if pid == 0:
-    # 1st child
-    if not options.foreground:
-        os.setsid()
-        pid = os.fork()
-    if pid == 0:
-        # 2nd child
-        # Set up file logging
-        logging.basicConfig(
-            level = logging.DEBUG,
-            format = '%(asctime)s %(name)-12s %(levelname)-8s %(message)s',
-            datefmt = '%Y-%m-%d %H:%M:%S',
-            filename = LOGINFO,
-            filemode = 'a'
-        )
+    server_thread.daemon = True
+server_thread.start()
+#print("Server loop running in thread:", server_thread.name)
 
-        if options.foreground:
-            # Set up console logging
-            console = logging.StreamHandler()
-            console.setLevel(logging.INFO)
-            formatter = logging.Formatter('%(name)-12s: %(levelname)-8s %(message)s')
-            console.setFormatter(formatter)
-            logging.getLogger('').addHandler(console)
-        
-        # Create logger
-        log = logging.getLogger()
-
-        # Start server
-        server_running = True
-        TCPServer.allow_reuse_address = True
-        server = TCPServer((HOST, PORT), RecvHandler)
-        try:
-            server.serve_forever()
-        except Exception as e:
-            log.critical("Got exception, crashing...")
-            log.critical(e)
-            log.critical(traceback.format_exc())
-            raise e
-        server.server_close()
-        sys.exit(0)
-    else:
-        os._exit(0)
-else:
-    os._exit(0)
+while True:
+    pass
